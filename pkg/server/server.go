@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -26,6 +27,7 @@ func Run() {
 	}
 
 	http.Handle("/", http.FileServer(http.Dir(webDir)))
+	fmt.Println("Server started at :", port)
 	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
 		log.Fatal("Server crashed err: ", err)

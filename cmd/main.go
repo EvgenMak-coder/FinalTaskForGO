@@ -2,6 +2,7 @@ package main
 
 import (
 	"FinalTaskForGO/pkg/api"
+	"FinalTaskForGO/pkg/db"
 	"FinalTaskForGO/pkg/server"
 	"log"
 	"os"
@@ -19,6 +20,7 @@ func main() {
 		log.Fatal("DB is not init")
 	}
 	defer db.GetDB().Close()
+
 	api.Init()
 	server.Run()
 
