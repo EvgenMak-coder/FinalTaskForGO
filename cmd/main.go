@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-const defaultDBfile = "scheduler.db"
+const defaultDBfile = "./scheduler.db"
 
 func main() {
 	dbFile := os.Getenv("TODO_DBFILE")
@@ -17,7 +17,7 @@ func main() {
 	}
 
 	if err := db.Init(dbFile); err != nil {
-		log.Fatal("DB is not init")
+		log.Fatalf("DB initialization failed: %v", err)
 	}
 	defer db.GetDB().Close()
 
