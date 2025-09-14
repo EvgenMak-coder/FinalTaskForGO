@@ -20,15 +20,9 @@ var (
 	ErrIntervalTooLarge = errors.New("interval exceeds maximum value")
 )
 
-func afterNow(a, b time.Time) bool {
-	return a.Year() > b.Year() || (a.Year() == b.Year() && a.YearDay() >= b.YearDay())
-}
 func NextDate(now time.Time, dStart string, repeat string) (string, error) {
 	if repeat == "" {
 		return "", ErrEmptyRepeat
-	}
-	if dStart == "" {
-		return "", ErrInvalidDate
 	}
 
 	date, err := time.Parse(dateFormat, dStart)
@@ -65,7 +59,7 @@ func nextDateDaily(now time.Time, date time.Time, parts []string) (string, error
 		return "", ErrInvalidFormat
 	}
 
-	if interval <= 0 || interval > 366 {
+	if interval <= 0 || interval > 400 {
 		return "", ErrIntervalTooLarge
 	}
 
@@ -86,6 +80,7 @@ func nextDateYearly(now time.Time, date time.Time) (string, error) {
 			break
 		}
 	}
+
 	return date.Format(dateFormat), nil
 }
 
@@ -104,6 +99,7 @@ func nextDateWeekly(now time.Time, date time.Time, parts []string) (string, erro
 		}
 		days[d] = true
 	}
+
 	for {
 		date = date.AddDate(0, 0, 1)
 		if afterNow(date, now) {
@@ -116,6 +112,7 @@ func nextDateWeekly(now time.Time, date time.Time, parts []string) (string, erro
 			}
 		}
 	}
+
 	return date.Format(dateFormat), nil
 }
 
@@ -136,6 +133,7 @@ func nextDateMonthly(now time.Time, date time.Time, parts []string) (string, err
 			return "", ErrInvalidMonth
 		}
 	}
+
 	for {
 		date = date.AddDate(0, 0, 1)
 		if afterNow(date, now) {
@@ -149,6 +147,7 @@ func nextDateMonthly(now time.Time, date time.Time, parts []string) (string, err
 			} else if contains(days, -2) && day == lastDay-1 {
 				dayCheck = -2
 			}
+
 			if contains(days, dayCheck) && (len(months) == 0 || contains(months, month)) {
 				break
 			}
@@ -173,6 +172,7 @@ func parseDays(s string) []int {
 
 	return days
 }
+
 func parseMonths(s string) []int {
 	parts := strings.Split(s, ",")
 	var months []int
@@ -186,6 +186,7 @@ func parseMonths(s string) []int {
 
 	return months
 }
+
 func contains(slice []int, val int) bool {
 	for _, item := range slice {
 		if item == val {
@@ -195,11 +196,16 @@ func contains(slice []int, val int) bool {
 	return false
 }
 
+func afterNow(a, b time.Time) bool {
+	return a.Year() > b.Year() ||
+		(a.Year() == b.Year() && a.YearDay() >= b.YearDay())
+}
 func nextDateHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
 	nowStr := r.FormValue("now")
 	dateStr := r.FormValue("date")
 	repeat := r.FormValue("repeat")
