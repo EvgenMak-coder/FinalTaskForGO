@@ -3,8 +3,9 @@ package api
 import (
 	"FinalTaskForGO/pkg/db"
 	"encoding/json"
+	"strconv"
+	"time"
 
-	"io"
 	"net/http"
 )
 
@@ -37,29 +38,53 @@ func getTaskHandler(w http.ResponseWriter, r *http.Request) {
 
 func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	var task db.Task
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		writeJson(w, map[string]string{"error": "Ошибка чтения тела запроса"})
+	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
+		writeJson(w, map[string]string{"error": "Invalid JSON format"})
 		return
 	}
-	err = json.Unmarshal(body, &task)
-	if err != nil {
-		writeJson(w, map[string]string{"error": "Ошибка парсинга JSON"})
+	id, err := strconv.Atoi(task.ID)
+	if err != nil || id == 0 {
+		writeJson(w, map[string]string{"error": "Task ID is required"})
 		return
 	}
+
 	if task.Title == "" {
-		writeJson(w, map[string]string{"error": "Не указан заголовок"})
+		writeJson(w, map[string]string{"error": "Task title is required"})
 		return
 	}
-	if err := checkDate(&task); err != nil {
-		writeJson(w, map[string]string{"error": err.Error()})
+
+	now := time.Now()
+	if task.Date == "" {
+		task.Date = now.Format(dateFormat)
+	}
+
+	t, err := time.Parse(dateFormat, task.Date)
+	if err != nil {
+		writeJson(w, map[string]string{"error": "Invalid date format, expected YYYYMMDD"})
 		return
 	}
+
+	if task.Repeat != "" {
+		next, err := NextDate(now, task.Date, task.Repeat)
+		if err != nil {
+			writeJson(w, map[string]string{"error": err.Error()})
+			return
+		}
+
+		if afterNow(now, t) {
+			task.Date = next
+		}
+	} else if afterNow(now, t) {
+		task.Date = now.Format(dateFormat)
+	}
+
 	if err := db.UpdateTask(&task); err != nil {
 		writeJson(w, map[string]string{"error": err.Error()})
 		return
 	}
-	writeJson(w, map[string]string{})
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("{}"))
 }
 
 func deleteTaskHandler(w http.ResponseWriter, r *http.Request) {

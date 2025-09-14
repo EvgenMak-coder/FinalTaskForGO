@@ -3,66 +3,52 @@ package api
 import (
 	"FinalTaskForGO/pkg/db"
 	"encoding/json"
-	"io"
 	"net/http"
-	"strconv"
 	"time"
 )
 
-func checkDate(task *db.Task) error {
+func addTaskHandler(w http.ResponseWriter, r *http.Request) {
+	var task db.Task
+	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
+		writeJson(w, map[string]string{"error": "Invalid JSON format"})
+		return
+	}
+
+	if task.Title == "" {
+		writeJson(w, map[string]string{"error": "Task title is required"})
+		return
+	}
+
 	now := time.Now()
-	layout := dateFormat
 	if task.Date == "" {
-		task.Date = now.Format(layout)
+		task.Date = now.Format(dateFormat)
 	}
-	t, err := time.Parse(layout, task.Date)
+
+	t, err := time.Parse(dateFormat, task.Date)
 	if err != nil {
-		return err
+		writeJson(w, map[string]string{"error": "Invalid date format, expected YYYYMMDD"})
+		return
 	}
+
 	if task.Repeat != "" {
 		next, err := NextDate(now, task.Date, task.Repeat)
 		if err != nil {
-			return err
+			writeJson(w, map[string]string{"error": err.Error()})
+			return
 		}
+
 		if afterNow(now, t) {
 			task.Date = next
 		}
-	} else {
-		if afterNow(now, t) {
-			task.Date = now.Format(layout)
-		}
+	} else if afterNow(now, t) {
+		task.Date = now.Format(dateFormat)
 	}
-	return nil
-}
 
-func addTaskHandler(w http.ResponseWriter, r *http.Request) {
-	var task db.Task
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		writeJson(w, map[string]string{"error": "Ошибка чтения тела запроса"})
-		return
-	}
-	err = json.Unmarshal(body, &task)
-	if err != nil {
-		writeJson(w, map[string]string{"error": "Ошибка парсинга JSON"})
-		return
-	}
-	if task.Title == "" {
-		writeJson(w, map[string]string{"error": "Не указан заголовок"})
-		return
-	}
-	if err := checkDate(&task); err != nil {
-		writeJson(w, map[string]string{"error": err.Error()})
-		return
-	}
 	id, err := db.AddTask(&task)
 	if err != nil {
-		writeJson(w, map[string]string{"error": err.Error()})
+		writeJson(w, map[string]string{"error": "Failed to add task to database"})
 		return
 	}
-	writeJson(w, map[string]string{"id": (fmtInt(id))})
-}
 
-func fmtInt(i int64) string {
-	return strconv.FormatInt(i, 10)
+	writeJson(w, db.TaskResponse{ID: id})
 }

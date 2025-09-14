@@ -196,9 +196,10 @@ func contains(slice []int, val int) bool {
 	return false
 }
 
-func afterNow(a, b time.Time) bool {
-	return a.Year() > b.Year() ||
-		(a.Year() == b.Year() && a.YearDay() >= b.YearDay())
+func afterNow(date, now time.Time) bool {
+	return date.Year() > now.Year() ||
+		(date.Year() == now.Year() && date.Month() > now.Month()) ||
+		(date.Year() == now.Year() && date.Month() == now.Month() && date.Day() > now.Day())
 }
 func nextDateHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
