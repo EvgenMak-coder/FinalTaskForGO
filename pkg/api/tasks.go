@@ -1,19 +1,30 @@
 package api
 
 import (
-	"FinalTaskForGO/pkg/db"
 	"net/http"
+
+	"FinalTaskForGO/pkg/db"
 )
 
 type TasksResp struct {
 	Tasks []*db.Task `json:"tasks"`
 }
 
+const limitTasks = 50
+
+// в функции tasksHandler добавил обработку на метод Get, а также добавил вывод статуса запроса
 func tasksHandler(w http.ResponseWriter, r *http.Request) {
-	lim := 50
-	if tasks, err := db.Tasks(lim); err != nil {
-		writeJson(w, map[string]string{"error": err.Error()})
-	} else {
-		writeJson(w, TasksResp{Tasks: tasks})
+	if r.Method != http.MethodGet {
+		writeJson(w, map[string]string{"error": "Method not allowed"}, http.StatusMethodNotAllowed)
+		return
 	}
+
+	tasks, err := db.Tasks(limitTasks)
+	if err != nil {
+		writeJson(w, map[string]string{"error": err.Error()}, http.StatusInternalServerError)
+		return
+	}
+
+	writeJson(w, TasksResp{Tasks: tasks}, http.StatusOK)
+
 }

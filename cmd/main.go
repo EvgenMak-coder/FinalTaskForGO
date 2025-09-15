@@ -1,11 +1,12 @@
 package main
 
 import (
+	"log"
+	"os"
+
 	"FinalTaskForGO/pkg/api"
 	"FinalTaskForGO/pkg/db"
 	"FinalTaskForGO/pkg/server"
-	"log"
-	"os"
 )
 
 const defaultDBfile = "./scheduler.db"

@@ -33,6 +33,7 @@ func Tasks(limit int) ([]*Task, error) {
 		return nil, err
 	}
 	defer rows.Close()
+
 	tasks := []*Task{}
 	for rows.Next() {
 		var t Task
@@ -41,6 +42,11 @@ func Tasks(limit int) ([]*Task, error) {
 		}
 		tasks = append(tasks, &t)
 	}
+	//добавлена обработка ошибки rows
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows error: %w", err)
+	}
+
 	if tasks == nil {
 		tasks = []*Task{}
 	}

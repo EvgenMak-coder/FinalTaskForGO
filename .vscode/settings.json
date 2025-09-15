@@ -1,0 +1,12 @@
+{
+    "editor.formatOnSave": true,
+    "[go]": {
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+        }
+    },
+    "gopls": {
+        "formatting.gofumpt": false
+    }
+}

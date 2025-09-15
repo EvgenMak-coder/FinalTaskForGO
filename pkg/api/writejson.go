@@ -5,7 +5,11 @@ import (
 	"net/http"
 )
 
-func writeJson(w http.ResponseWriter, data any) {
+// в функцию writeJson добавил вывод о статусе запроса, обработку ошибки преобразования в JSON
+func writeJson(w http.ResponseWriter, data any, statusCode int) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	json.NewEncoder(w).Encode(data)
+	w.WriteHeader(statusCode)
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		http.Error(w, "не удалось преобразовать в JSON", http.StatusInternalServerError)
+	}
 }

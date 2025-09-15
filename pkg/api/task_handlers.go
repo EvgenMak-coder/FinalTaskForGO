@@ -1,12 +1,12 @@
 package api
 
 import (
-	"FinalTaskForGO/pkg/db"
 	"encoding/json"
+	"net/http"
 	"strconv"
 	"time"
 
-	"net/http"
+	"FinalTaskForGO/pkg/db"
 )
 
 func taskHandler(w http.ResponseWriter, r *http.Request) {
@@ -22,34 +22,40 @@ func taskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// в функции getTaskHandler изменил обработку ошибок и добавил вывод статуса запроса
 func getTaskHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
 	if id == "" {
-		writeJson(w, map[string]string{"error": "Не указан идентификатор"})
+		writeJson(w, map[string]string{"error": "Не указан идентификатор"}, http.StatusBadRequest)
 		return
 	}
 	task, err := db.GetTask(id)
 	if err != nil {
-		writeJson(w, map[string]string{"error": err.Error()})
+		status := http.StatusInternalServerError
+		if err.Error() == "task not found" {
+			status = http.StatusNotFound
+		}
+		writeJson(w, map[string]string{"error": err.Error()}, status)
 		return
 	}
-	writeJson(w, task)
+	writeJson(w, task, http.StatusOK)
 }
 
+// в функции updateTaskHandler изменил обработку ошибок и добавил вывод статуса запроса
 func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	var task db.Task
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
-		writeJson(w, map[string]string{"error": "Invalid JSON format"})
+		writeJson(w, map[string]string{"error": "Invalid JSON format"}, http.StatusBadRequest)
 		return
 	}
 	id, err := strconv.Atoi(task.ID)
 	if err != nil || id == 0 {
-		writeJson(w, map[string]string{"error": "Task ID is required"})
+		writeJson(w, map[string]string{"error": "Task ID is required"}, http.StatusBadRequest)
 		return
 	}
 
 	if task.Title == "" {
-		writeJson(w, map[string]string{"error": "Task title is required"})
+		writeJson(w, map[string]string{"error": "Task title is required"}, http.StatusBadRequest)
 		return
 	}
 
@@ -60,14 +66,14 @@ func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
 
 	t, err := time.Parse(dateFormat, task.Date)
 	if err != nil {
-		writeJson(w, map[string]string{"error": "Invalid date format, expected YYYYMMDD"})
+		writeJson(w, map[string]string{"error": "Invalid date format, expected YYYYMMDD"}, http.StatusBadRequest)
 		return
 	}
 
 	if task.Repeat != "" {
 		next, err := NextDate(now, task.Date, task.Repeat)
 		if err != nil {
-			writeJson(w, map[string]string{"error": err.Error()})
+			writeJson(w, map[string]string{"error": err.Error()}, http.StatusBadRequest)
 			return
 		}
 
@@ -79,7 +85,11 @@ func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := db.UpdateTask(&task); err != nil {
-		writeJson(w, map[string]string{"error": err.Error()})
+		status := http.StatusInternalServerError
+		if err.Error() == "task not found" {
+			status = http.StatusNotFound
+		}
+		writeJson(w, map[string]string{"error": err.Error()}, status)
 		return
 	}
 
@@ -87,15 +97,21 @@ func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("{}"))
 }
 
+// в функции deleteTaskHandler изменил обработку ошибок и добавил вывод статуса запроса
 func deleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
 	if id == "" {
-		writeJson(w, map[string]string{"error": "Не указан идентификатор"})
+		writeJson(w, map[string]string{"error": "Не указан идентификатор"}, http.StatusBadRequest)
 		return
 	}
+
 	if err := db.DeleteTask(id); err != nil {
-		writeJson(w, map[string]string{"error": err.Error()})
+		status := http.StatusInternalServerError
+		if err.Error() == "task not found" {
+			status = http.StatusNotFound
+		}
+		writeJson(w, map[string]string{"error": err.Error()}, status)
 		return
 	}
-	writeJson(w, map[string]string{})
+	writeJson(w, map[string]string{}, http.StatusOK)
 }
